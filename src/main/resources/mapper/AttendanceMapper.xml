@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="jp.co.company.attendance.mapper.AttendanceMapper">
+
+    <!-- 1. 多表联查：社員マスタ(m_employee) INNER/LEFT JOIN 勤怠テーブル(t_attendance) -->
+    <select id="selectAttendanceList" resultType="jp.co.company.attendance.dto.AttendanceRecordDTO">
+        SELECT
+        a.attendance_id,
+        e.emp_id,
+        e.emp_code,
+        e.emp_name,
+        e.dept_name,
+        a.work_date,
+        a.clock_in_time,
+        a.clock_out_time,
+        a.work_status
+        FROM
+        t_attendance a
+        INNER JOIN
+        m_employee e ON a.emp_id = e.emp_id
+        <where>
+            e.delete_flg = 0
+            <if test="empId != null">
+                AND a.emp_id = #{empId}
+            </if>
+            <if test="yearMonth != null and yearMonth != ''">
+                <!-- 按年月查询，例如传入 '2026-10' -->
+                AND DATE_FORMAT(a.work_date, '%Y-%m') = #{yearMonth}
+            </if>
+        </where>
+        ORDER BY a.work_date DESC, e.emp_id ASC
+    </select>
+
+    <!-- 2. 出勤打刻（上班打卡：插入一条当天的考勤记录） -->
+    <insert id="insertClockIn" parameterType="jp.co.company.attendance.entity.Attendance"
+            useGeneratedKeys="true" keyProperty="attendanceId">
+        INSERT INTO t_attendance (
+            emp_id, work_date, clock_in_time, work_status
+        ) VALUES (
+                     #{empId}, #{workDate}, #{clockInTime}, #{workStatus}
+                 )
+    </insert>
+
+    <!-- 3. 退勤打刻（下班打卡：根据员工ID和当天日期，更新下班时间） -->
+    <update id="updateClockOut">
+        UPDATE t_attendance
+        SET clock_out_time = #{clockOutTime}
+        WHERE emp_id = #{empId} AND work_date = #{workDate}
+    </update>
+
+</mapper>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="jp.co.company.attendance.mapper.LeaveRequestMapper">
+
+    <!-- 1. 休暇申請一覧取得（按审批状态或员工ID筛选） -->
+    <select id="selectLeaveRequests" resultType="jp.co.company.attendance.entity.LeaveRequest">
+        SELECT * FROM t_leave_request
+        <where>
+            <if test="empId != null">
+                AND emp_id = #{empId}
+            </if>
+            <if test="approvalStatus != null">
+                AND approval_status = #{approvalStatus}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 2. 休暇新規申請（默认状态为 0:申請中） -->
+    <insert id="insertLeaveRequest" parameterType="jp.co.company.attendance.entity.LeaveRequest"
+            useGeneratedKeys="true" keyProperty="requestId">
+        INSERT INTO t_leave_request (
+            emp_id, leave_type, start_date, end_date, reason, approval_status
+        ) VALUES (
+                     #{empId}, #{leaveType}, #{startDate}, #{endDate}, #{reason}, 0
+                 )
+    </insert>
+
+    <!-- 3. 承認・却下ステータス更新（只允许更新处于 0:申請中 状态的记录） -->
+    <update id="updateApprovalStatus">
+        UPDATE t_leave_request
+        SET approval_status = #{approvalStatus}
+        WHERE request_id = #{requestId} AND approval_status = 0
+    </update>
+
+</mapper>

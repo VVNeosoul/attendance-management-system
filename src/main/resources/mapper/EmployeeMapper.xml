@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace 必须对应你的 EmployeeMapper 接口的完整路径 -->
+<mapper namespace="jp.co.company.attendance.mapper.EmployeeMapper">
+
+    <!-- 1. 条件検索（根据姓名模糊查询、根据部门精确查询） -->
+    <select id="selectByCondition" resultType="jp.co.company.attendance.entity.Employee">
+        SELECT
+        emp_id, emp_code, emp_name, dept_name, email, hire_date, delete_flg, created_at, updated_at
+        FROM
+        m_employee
+        <where>
+            delete_flg = 0
+            <if test="empName != null and empName != ''">
+                AND emp_name LIKE CONCAT('%', #{empName}, '%')
+            </if>
+            <if test="deptName != null and deptName != ''">
+                AND dept_name = #{deptName}
+            </if>
+        </where>
+        ORDER BY emp_id ASC
+    </select>
+
+    <!-- 2. 新規登録（新增员工，useGeneratedKeys自动拿回自增主键 empId） -->
+    <insert id="insertEmployee" parameterType="jp.co.company.attendance.entity.Employee"
+            useGeneratedKeys="true" keyProperty="empId">
+        INSERT INTO m_employee (
+            emp_code, emp_name, dept_name, email, hire_date, delete_flg
+        ) VALUES (
+                     #{empCode}, #{empName}, #{deptName}, #{email}, #{hireDate}, 0
+                 )
+    </insert>
+
+    <!-- 3. 情報更新（修改员工部门和邮箱） -->
+    <update id="updateEmployee" parameterType="jp.co.company.attendance.entity.Employee">
+        UPDATE m_employee
+        <set>
+            <if test="empName != null and empName != ''">emp_name = #{empName},</if>
+            <if test="deptName != null and deptName != ''">dept_name = #{deptName},</if>
+            <if test="email != null">email = #{email},</if>
+        </set>
+        WHERE emp_id = #{empId} AND delete_flg = 0
+    </update>
+
+    <!-- 4. 論理削除（逻辑删除：不删数据，只把 delete_flg 改为 1） -->
+    <update id="logicalDeleteById">
+        UPDATE m_employee
+        SET delete_flg = 1
+        WHERE emp_id = #{empId} AND delete_flg = 0
+    </update>
+
+</mapper>
